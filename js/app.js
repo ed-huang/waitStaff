@@ -1,81 +1,127 @@
 angular.module('myApp', [])
-	.controller('waitStaffCtrl', function($scope, $rootScope) {
-		$scope.earningsInfo = {
-			tipTotal: 0,
-			mealCount: 0,
-			averageTip: 0
-		};
-		$scope.mealDetails = {
+	.factory('mealDetailsFactory', function() {
+		var details = {};
+		details = {
 			mealPrice: null,
 			taxRate: null,
 			tipPercentage: null,
-			submitted: false
-		};
-		$scope.customerCharges = {
-			subTotal: 0, 
-			tip: 0, 
-			total: 0
-		}
-		
-		$scope.submit = function() {
-			console.log("submit()");
-			$scope.submitted = true;
-			if(!$scope.detailsForm.$invalid) {
-				console.log("submit");
-				$scope.earningsInfo.tipTotal += $scope.customerCharges.tip;
-				$scope.earningsInfo.mealCount ++;
-				$scope.earningsInfo.averageTip = $scope.earningsInfo.tipTotal / $scope.earningsInfo.mealCount;
-				$scope.clearForm();
-				$scope.detailsForm.$pristine = true;
+			submitted: false,
+			getTip: function() {
+				return (this.tipPercentage/100) * this.mealPrice;	
+			},
+			reset: function() {
+				mealPrice = null;
+				taxRate = null;
+				tipPercentage = null;
+				submitted = false;
 			}
 		};
-		$scope.cancel = function() {
-			$scope.mealDetails = {};
-		};
-		$scope.clearForm = function() {
-			$scope.submitted = false;
-			console.log("clearForm");
-			$scope.mealDetails = {
-				mealPrice:  null,
+		return details;
+	})
+
+/**** Meal Detail Controller and Form ****/
+
+	.controller('mealDetailsCtrl', function($rootScope, $scope, mealDetailsFactory) {
+
+		// initialize
+		function init() {
+			$scope.data = {
+				mealPrice: null,
 				taxRate: null,
-				tipPercentage: null
+				tipPercentage: null,
+				submitted: false
+
 			};
-			$scope.customerCharges = {
+		}
+		
+		// on submit
+		$scope.submit = function() {
+			$scope.submitted = true;
+			if(!$scope.detailsForm.$invalid) {
+				mealDetailsFactory.mealPrice  = $scope.data.mealPrice; 
+				mealDetailsFactory.taxRate = $scope.data.taxRate;
+				mealDetailsFactory.tipPercentage = $scope.data.tipPercentage;
+				$rootScope.$broadcast('submitted');
+				$scope.data = {};
+				$scope.submitted = false;
+			}
+		}
+
+		//on cancel
+		$scope.clearForm = function() {
+			if($scope.detailsForm.$dirty) {
+				$scope.data = {};
+				$scope.submitted = false;
+			}
+		}
+
+		//reset
+		$scope.$on('reset', function(event, data) {
+			init();
+		});
+
+		init();
+
+		
+
+	})
+
+/**** Customer Charges Controller ****/
+
+	.controller('customerChargesCtrl', function($scope, mealDetailsFactory) {
+
+		function init() {
+			$scope.data = {
 				subTotal: 0, 
 				tip: 0, 
 				total: 0
-			}
-			$scope.detailsForm.$prinstine = true;
-			
-			console.log($scope.submitted);
+			}	
 		}
+		
+		$scope.$on('submitted', function(event, data) {
+			$scope.data.subTotal = (mealDetailsFactory.mealPrice * (mealDetailsFactory.taxRate)/100) + mealDetailsFactory.mealPrice;
+			$scope.data.tip = mealDetailsFactory.getTip();
+			$scope.data.total = $scope.data.subTotal + $scope.data.tip;
+		});
 
-		$scope.reset = function() {
-			$scope.earningsInfo = {
+		$scope.$on('reset', function(event, data) {
+			init();
+		});
+
+		init();
+	})
+
+/**** Customer Charges Controller ****/
+
+	.controller('earningsInfoCtrl', function($rootScope, $scope, mealDetailsFactory){
+
+		function init() {
+			$scope.data = {
 				tipTotal: 0,
 				mealCount: 0,
 				averageTip: 0
-			};
-			$scope.clearForm();
+			}	
 		}
 
-		$scope.subTotal = function(total, taxRate) {
-			$scope.customerCharges.subTotal = (total * taxRate/100) + total;		
-			return $scope.customerCharges.subTotal;
-		}
+		$scope.$on('submitted', function(event, data) {
+			$scope.data.tipTotal += mealDetailsFactory.getTip();
+			$scope.data.mealCount ++;
+			$scope.data.averageTip = $scope.data.tipTotal / $scope.data.mealCount;
+		});
 
-		$scope.tip = function(total, tipPercentage) {
-			var myTip = total * tipPercentage/100;
-			$scope.customerCharges.tip = myTip;
-			return myTip;
-		}
+		$scope.$on('reset', function(event, data) {
+			init();
+		});
 
-		var defaultValues = function() {
+		init();
+	})
 
-		}
+/**** Controller for entire app ****/
 
-
-
-		$scope.total = $scope.tip + $scope.subTotal;
+	.controller('waitStaffCtrl', function($scope, $rootScope, mealDetailsFactory) {
+		$scope.reset = function() {
+				mealDetailsFactory.reset();
+				$rootScope.$broadcast('reset');
+			}
 	});
 	
