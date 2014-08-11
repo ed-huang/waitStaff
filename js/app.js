@@ -18,7 +18,6 @@ angular.module('myApp', [])
 		}
 		
 		$scope.submit = function() {
-			console.log("submit()");
 			$scope.submitted = true;
 			if(!$scope.detailsForm.$invalid) {
 				console.log("submit");
