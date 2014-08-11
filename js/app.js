@@ -70,12 +70,6 @@ angular.module('myApp', [])
 			return myTip;
 		}
 
-		var defaultValues = function() {
-
-		}
-
-
-
 		$scope.total = $scope.tip + $scope.subTotal;
 	});
 	
